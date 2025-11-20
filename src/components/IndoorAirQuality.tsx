@@ -45,7 +45,16 @@ export function IndoorAirQuality() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Failed to load indoor air quality data. Please try again later.
+              <strong>Firebase Permission Denied (401)</strong>
+              <br />
+              The Firebase Realtime Database needs read permissions configured.
+              <br />
+              <br />
+              To fix this, update your Firebase Realtime Database rules to allow read access:
+              <br />
+              <code className="text-xs bg-muted px-2 py-1 rounded mt-2 block">
+                {`{\n  "rules": {\n    "airQuality": {\n      ".read": true\n    }\n  }\n}`}
+              </code>
             </AlertDescription>
           </Alert>
         </CardContent>
