@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        quality: {
+          good: "hsl(var(--quality-good))",
+          moderate: "hsl(var(--quality-moderate))",
+          unhealthy: "hsl(var(--quality-unhealthy))",
+          "very-unhealthy": "hsl(var(--quality-very-unhealthy))",
+          hazardous: "hsl(var(--quality-hazardous))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

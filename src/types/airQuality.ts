@@ -1,0 +1,40 @@
+export interface IndoorAirQuality {
+  PM25: number;
+  PM10: number;
+  NO2: number;
+  CO: number;
+  SO2: number;
+  O3: number;
+  timestamp?: number;
+}
+
+export interface OutdoorWeather {
+  temp: number;
+  feels_like: number;
+  humidity: number;
+  pressure: number;
+}
+
+export interface OutdoorAirPollution {
+  co: number;
+  no2: number;
+  o3: number;
+  so2: number;
+  pm2_5: number;
+  pm10: number;
+}
+
+export interface Location {
+  lat: number;
+  lon: number;
+  name: string;
+}
+
+export type AirQualityLevel = 'good' | 'moderate' | 'unhealthy' | 'very-unhealthy' | 'hazardous';
+
+export interface AirQualityMetric {
+  label: string;
+  value: number;
+  unit: string;
+  level: AirQualityLevel;
+}
