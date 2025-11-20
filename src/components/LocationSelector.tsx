@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Loader2, Locate } from 'lucide-react';
+import { MapPin, Loader2, Locate, Search } from 'lucide-react';
 import { Location } from '@/types/airQuality';
 import { toast } from 'sonner';
+
+const API_KEY = 'd13fb2febeee7ffb24c3cf514f5457d6';
 
 interface LocationSelectorProps {
   currentLocation: Location;
@@ -25,6 +27,8 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
   const [lon, setLon] = useState(currentLocation.lon.toString());
   const [name, setName] = useState(currentLocation.name);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +45,48 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
     setLon(location.lon.toString());
     setName(location.name);
     onLocationChange(location);
+  };
+
+  const handleSearchLocation = async () => {
+    if (!searchQuery.trim()) {
+      toast.error('Please enter a location to search');
+      return;
+    }
+
+    setIsSearching(true);
+
+    try {
+      const response = await fetch(
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchQuery)}&limit=1&appid=${API_KEY}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to search location');
+      }
+
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const result = data[0];
+        const foundLat = result.lat;
+        const foundLon = result.lon;
+        const foundName = result.name + (result.country ? `, ${result.country}` : '');
+
+        setLat(foundLat.toString());
+        setLon(foundLon.toString());
+        setName(foundName);
+        onLocationChange({ lat: foundLat, lon: foundLon, name: foundName });
+        toast.success(`Location found: ${foundName}`);
+        setSearchQuery('');
+      } else {
+        toast.error('Location not found. Try a different search.');
+      }
+    } catch (error) {
+      console.error('Location search error:', error);
+      toast.error('Failed to search location. Please try again.');
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleUseCurrentLocation = async () => {
@@ -126,6 +172,43 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Search Location */}
+        <div className="space-y-2">
+          <Label htmlFor="search">Search Location</Label>
+          <div className="flex gap-2">
+            <Input
+              id="search"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchLocation()}
+              placeholder="e.g., Islamabad, Pakistan"
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSearchLocation}
+              disabled={isSearching}
+              className="gap-2"
+            >
+              {isSearching ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              Search
+            </Button>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">Or</span>
+          </div>
+        </div>
+
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             onClick={handleUseCurrentLocation}
