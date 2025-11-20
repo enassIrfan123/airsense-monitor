@@ -13,6 +13,12 @@ export interface OutdoorWeather {
   feels_like: number;
   humidity: number;
   pressure: number;
+  uvi?: number;
+  clouds?: number;
+  wind_speed?: number;
+  weather_description?: string;
+  rain_1h?: number;
+  rain_3h?: number;
 }
 
 export interface OutdoorAirPollution {

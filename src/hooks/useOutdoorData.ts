@@ -33,6 +33,12 @@ async function fetchOutdoorData(lat: number, lon: number): Promise<OutdoorData> 
       feels_like: weatherData.main.feels_like,
       humidity: weatherData.main.humidity,
       pressure: weatherData.main.pressure,
+      uvi: weatherData.uvi,
+      clouds: weatherData.clouds?.all,
+      wind_speed: weatherData.wind?.speed,
+      weather_description: weatherData.weather?.[0]?.description,
+      rain_1h: weatherData.rain?.['1h'],
+      rain_3h: weatherData.rain?.['3h'],
     },
     airPollution: {
       co: pollutionData.list[0].components.co,

@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { IndoorAirQuality } from '@/components/IndoorAirQuality';
 import { OutdoorAirQuality } from '@/components/OutdoorAirQuality';
 import { LocationSelector } from '@/components/LocationSelector';
+import { UVIndex } from '@/components/UVIndex';
+import { RainfallPrediction } from '@/components/RainfallPrediction';
+import { AirQualityMap } from '@/components/AirQualityMap';
 import { Location } from '@/types/airQuality';
 import { Wind, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useOutdoorData } from '@/hooks/useOutdoorData';
 
 const Index = () => {
   const [location, setLocation] = useState<Location>({
@@ -16,6 +20,7 @@ const Index = () => {
   });
 
   const queryClient = useQueryClient();
+  const { data: outdoorData } = useOutdoorData(location.lat, location.lon);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['indoorAirQuality'] });
@@ -63,6 +68,26 @@ const Index = () => {
             lon={location.lon} 
             locationName={location.name}
           />
+
+          {/* UV Index and Rainfall in a grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <UVIndex uvi={outdoorData?.weather.uvi} />
+            <RainfallPrediction 
+              rain_1h={outdoorData?.weather.rain_1h}
+              rain_3h={outdoorData?.weather.rain_3h}
+              clouds={outdoorData?.weather.clouds}
+            />
+          </div>
+
+          {/* Air Quality Heat Map */}
+          {outdoorData && (
+            <AirQualityMap
+              lat={location.lat}
+              lon={location.lon}
+              locationName={location.name}
+              pm25={outdoorData.airPollution.pm2_5}
+            />
+          )}
         </div>
       </main>
 
