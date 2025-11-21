@@ -5,12 +5,24 @@ import { LocationSelector } from '@/components/LocationSelector';
 import { UVIndex } from '@/components/UVIndex';
 import { RainfallPrediction } from '@/components/RainfallPrediction';
 import { AirQualityMap } from '@/components/AirQualityMap';
+import { HealthRecommendations } from '@/components/HealthRecommendations';
+import { AirQualityAlerts } from '@/components/AirQualityAlerts';
+import { LocationComparison } from '@/components/LocationComparison';
+import { HistoricalCharts } from '@/components/HistoricalCharts';
 import { Location } from '@/types/airQuality';
 import { Wind, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useOutdoorData } from '@/hooks/useOutdoorData';
+import {
+  getPM25Level,
+  getPM10Level,
+  getCOLevel,
+  getNO2Level,
+  getSO2Level,
+  getO3Level,
+} from '@/utils/airQualityCalculations';
 
 const Index = () => {
   const [location, setLocation] = useState<Location>({
@@ -88,6 +100,49 @@ const Index = () => {
               pm25={outdoorData.airPollution.pm2_5}
             />
           )}
+
+          {/* Air Quality Alerts */}
+          {outdoorData && (
+            <AirQualityAlerts
+              pm25={outdoorData.airPollution.pm2_5}
+              pm10={outdoorData.airPollution.pm10}
+              co={outdoorData.airPollution.co / 1000}
+              no2={outdoorData.airPollution.no2}
+              so2={outdoorData.airPollution.so2}
+              o3={outdoorData.airPollution.o3}
+              pm25Level={getPM25Level(outdoorData.airPollution.pm2_5)}
+              pm10Level={getPM10Level(outdoorData.airPollution.pm10)}
+              coLevel={getCOLevel(outdoorData.airPollution.co / 1000)}
+              no2Level={getNO2Level(outdoorData.airPollution.no2)}
+              so2Level={getSO2Level(outdoorData.airPollution.so2)}
+              o3Level={getO3Level(outdoorData.airPollution.o3)}
+            />
+          )}
+
+          {/* Health Recommendations */}
+          {outdoorData && (
+            <HealthRecommendations
+              pm25Level={getPM25Level(outdoorData.airPollution.pm2_5)}
+              pm10Level={getPM10Level(outdoorData.airPollution.pm10)}
+              o3Level={getO3Level(outdoorData.airPollution.o3)}
+              no2Level={getNO2Level(outdoorData.airPollution.no2)}
+            />
+          )}
+
+          {/* Historical Data Charts */}
+          {outdoorData && (
+            <HistoricalCharts
+              currentPM25={outdoorData.airPollution.pm2_5}
+              currentPM10={outdoorData.airPollution.pm10}
+              currentCO={outdoorData.airPollution.co / 1000}
+              currentNO2={outdoorData.airPollution.no2}
+              currentO3={outdoorData.airPollution.o3}
+              currentSO2={outdoorData.airPollution.so2}
+            />
+          )}
+
+          {/* Location Comparison */}
+          <LocationComparison />
         </div>
       </main>
 
