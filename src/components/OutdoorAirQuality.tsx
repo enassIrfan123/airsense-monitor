@@ -120,14 +120,14 @@ export function OutdoorAirQuality({ lat, lon, locationName }: OutdoorAirQualityP
             <Thermometer className="h-8 w-8 text-primary" />
             <div>
               <p className="text-xs text-muted-foreground">Temperature</p>
-              <p className="text-2xl font-bold">{data.weather.temp.toFixed(1)}°C</p>
+              <p className="text-2xl font-bold">{data.weather.temp?.toFixed(1) ?? 'N/A'}°C</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
             <Thermometer className="h-8 w-8 text-accent" />
             <div>
               <p className="text-xs text-muted-foreground">Feels Like</p>
-              <p className="text-2xl font-bold">{data.weather.feels_like.toFixed(1)}°C</p>
+              <p className="text-2xl font-bold">{data.weather.feels_like?.toFixed(1) ?? 'N/A'}°C</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">

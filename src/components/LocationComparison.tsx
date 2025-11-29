@@ -187,15 +187,15 @@ function LocationCard({ location, onRemove }: LocationCardProps) {
         <div className="space-y-2">
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">PM2.5</span>
-            <span className="font-mono font-semibold">{data.airPollution.pm2_5.toFixed(1)} μg/m³</span>
+            <span className="font-mono font-semibold">{data.airPollution.pm2_5?.toFixed(1) ?? 'N/A'} μg/m³</span>
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">PM10</span>
-            <span className="font-mono font-semibold">{data.airPollution.pm10.toFixed(1)} μg/m³</span>
+            <span className="font-mono font-semibold">{data.airPollution.pm10?.toFixed(1) ?? 'N/A'} μg/m³</span>
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Temperature</span>
-            <span className="font-mono">{data.weather.temp.toFixed(1)}°C</span>
+            <span className="font-mono">{data.weather.temp?.toFixed(1) ?? 'N/A'}°C</span>
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Humidity</span>

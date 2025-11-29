@@ -26,7 +26,7 @@ export function MetricCard({ metric }: MetricCardProps) {
           </div>
           <div className="flex items-baseline space-x-2">
             <span className="text-3xl font-bold text-foreground">
-              {metric.value.toFixed(1)}
+              {metric.value?.toFixed(1) ?? 'N/A'}
             </span>
             <span className="text-sm text-muted-foreground">{metric.unit}</span>
           </div>

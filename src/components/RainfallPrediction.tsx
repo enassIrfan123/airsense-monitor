@@ -32,7 +32,7 @@ export function RainfallPrediction({ rain_1h, rain_3h, clouds }: RainfallPredict
               <p className="text-sm text-muted-foreground">Last Hour</p>
             </div>
             <p className="text-2xl font-bold">
-              {hasRainData ? `${currentRain.toFixed(1)} mm` : 'No rain'}
+              {hasRainData ? `${currentRain?.toFixed(1) ?? '0.0'} mm` : 'No rain'}
             </p>
           </div>
           
@@ -42,7 +42,7 @@ export function RainfallPrediction({ rain_1h, rain_3h, clouds }: RainfallPredict
               <p className="text-sm text-muted-foreground">Last 3 Hours</p>
             </div>
             <p className="text-2xl font-bold">
-              {hasRainData ? `${recent3hRain.toFixed(1)} mm` : 'No rain'}
+              {hasRainData ? `${recent3hRain?.toFixed(1) ?? '0.0'} mm` : 'No rain'}
             </p>
           </div>
 
@@ -58,7 +58,7 @@ export function RainfallPrediction({ rain_1h, rain_3h, clouds }: RainfallPredict
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Precipitation Likelihood</span>
-            <span className="font-semibold">{precipitationProb.toFixed(0)}%</span>
+            <span className="font-semibold">{precipitationProb?.toFixed(0) ?? '0'}%</span>
           </div>
           <Progress value={precipitationProb} className="h-2" />
         </div>

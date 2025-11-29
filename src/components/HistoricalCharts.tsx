@@ -77,7 +77,7 @@ export function HistoricalCharts({ currentPM25, currentPM10, currentCO, currentN
           <p className="font-semibold text-sm mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {entry.name}: {entry.value.toFixed(2)} μg/m³
+              {entry.name}: {entry.value?.toFixed(2) ?? 'N/A'} μg/m³
             </p>
           ))}
         </div>
