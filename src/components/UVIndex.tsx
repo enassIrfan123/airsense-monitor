@@ -58,7 +58,7 @@ export function UVIndex({ uvi }: UVIndexProps) {
       <CardContent className="space-y-4">
         <div className="flex items-center gap-4">
           <div className={`px-6 py-3 rounded-lg ${uvInfo.color}`}>
-            <p className="text-3xl font-bold">{uvi.toFixed(1)}</p>
+            <p className="text-3xl font-bold">{uvi?.toFixed(1) ?? 'N/A'}</p>
           </div>
           <div>
             <p className={`text-lg font-semibold ${uvInfo.color.split(' ')[0]}`}>

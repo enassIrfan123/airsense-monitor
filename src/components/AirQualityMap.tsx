@@ -63,7 +63,7 @@ export function AirQualityMap({ lat, lon, locationName, pm25 }: AirQualityMapPro
     marker.bindPopup(`
       <div style="text-align: center;">
         <strong>${locationName}</strong><br/>
-        PM2.5: ${pm25.toFixed(1)} µg/m³
+        PM2.5: ${pm25?.toFixed(1) ?? 'N/A'} µg/m³
       </div>
     `).openPopup();
 
