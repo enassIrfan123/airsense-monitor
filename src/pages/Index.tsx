@@ -10,12 +10,16 @@ import { AirQualityAlerts } from '@/components/AirQualityAlerts';
 import { LocationComparison } from '@/components/LocationComparison';
 import { HistoricalCharts } from '@/components/HistoricalCharts';
 import { DashboardNav } from '@/components/DashboardNav';
+import { WeeklyTrends } from '@/components/WeeklyTrends';
+import { LocationFavorites } from '@/components/LocationFavorites';
+import { AlertSettings } from '@/components/AlertSettings';
 import { Location } from '@/types/airQuality';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useOutdoorData } from '@/hooks/useOutdoorData';
 import { useIndoorAirQuality } from '@/hooks/useIndoorAirQuality';
 import { useAirQualityAlerts } from '@/hooks/useAirQualityAlerts';
+import { useAlertThresholds } from '@/hooks/useAlertThresholds';
 import { exportToCSV, exportToJSON, ExportData } from '@/utils/dataExport';
 import {
   getPM25Level,
@@ -37,6 +41,7 @@ const Index = () => {
   const queryClient = useQueryClient();
   const { data: outdoorData } = useOutdoorData(location.lat, location.lon);
   const { data: indoorData } = useIndoorAirQuality();
+  const { thresholds, saveThresholds } = useAlertThresholds();
 
   // Alert notifications
   useAirQualityAlerts(
@@ -48,9 +53,16 @@ const Index = () => {
           pm10Level: getPM10Level(outdoorData.airPollution.pm10),
           o3: outdoorData.airPollution.o3,
           o3Level: getO3Level(outdoorData.airPollution.o3),
+          no2: outdoorData.airPollution.no2,
+          no2Level: getNO2Level(outdoorData.airPollution.no2),
+          so2: outdoorData.airPollution.so2,
+          so2Level: getSO2Level(outdoorData.airPollution.so2),
+          co: outdoorData.airPollution.co / 1000,
+          coLevel: getCOLevel(outdoorData.airPollution.co / 1000),
         }
       : null,
-    alertsEnabled
+    alertsEnabled,
+    thresholds
   );
 
   const handleRefresh = () => {
@@ -114,6 +126,12 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
+          {/* Location Favorites */}
+          <LocationFavorites
+            currentLocation={location}
+            onLocationSelect={setLocation}
+          />
+
           {/* Location Selector */}
           <LocationSelector currentLocation={location} onLocationChange={setLocation} />
 
@@ -192,6 +210,24 @@ const Index = () => {
               currentSO2={outdoorData.airPollution.so2}
             />
           )}
+
+          {/* Weekly Trends */}
+          {outdoorData && (
+            <WeeklyTrends
+              currentPM25={outdoorData.airPollution.pm2_5}
+              currentPM10={outdoorData.airPollution.pm10}
+              currentO3={outdoorData.airPollution.o3}
+              currentNO2={outdoorData.airPollution.no2}
+            />
+          )}
+
+          {/* Alert Settings */}
+          <div id="settings">
+            <AlertSettings
+              currentThresholds={thresholds}
+              onSave={saveThresholds}
+            />
+          </div>
 
           {/* Location Comparison */}
           <div id="comparison">
