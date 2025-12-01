@@ -1,10 +1,14 @@
 export interface IndoorAirQuality {
-  PM25: number;
+  PM2_5: number;
   PM10: number;
   NO2: number;
   CO: number;
   SO2: number;
   O3: number;
+  temperature: number;
+  feels_like: number;
+  humidity: number;
+  pressure: number;
   timestamp?: number;
 }
 

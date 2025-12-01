@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { IndoorAirQuality } from '@/types/airQuality';
 
-const FIREBASE_URL = 'https://air-sense-d7792-default-rtdb.firebaseio.com/airQuality.json';
+const FIREBASE_URL = 'https://airsense-data-default-rtdb.firebaseio.com/airQuality.json';
 
 async function fetchIndoorAirQuality(): Promise<IndoorAirQuality> {
   const response = await fetch(FIREBASE_URL);

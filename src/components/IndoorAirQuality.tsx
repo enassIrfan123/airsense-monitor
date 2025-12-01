@@ -66,12 +66,19 @@ export function IndoorAirQuality() {
     return null;
   }
 
-  const metrics: AirQualityMetric[] = [
+  const weatherMetrics = [
+    { label: 'Temperature', value: data.temperature, unit: '°C' },
+    { label: 'Feels Like', value: data.feels_like, unit: '°C' },
+    { label: 'Humidity', value: data.humidity, unit: '%' },
+    { label: 'Pressure', value: data.pressure, unit: 'hPa' },
+  ];
+
+  const airQualityMetrics: AirQualityMetric[] = [
     {
       label: 'PM2.5',
-      value: data.PM25,
+      value: data.PM2_5,
       unit: 'µg/m³',
-      level: getPM25Level(data.PM25),
+      level: getPM25Level(data.PM2_5),
     },
     {
       label: 'PM10',
@@ -80,16 +87,16 @@ export function IndoorAirQuality() {
       level: getPM10Level(data.PM10),
     },
     {
-      label: 'NO₂',
-      value: data.NO2,
-      unit: 'ppb',
-      level: getNO2Level(data.NO2),
-    },
-    {
       label: 'CO',
       value: data.CO,
       unit: 'ppm',
       level: getCOLevel(data.CO),
+    },
+    {
+      label: 'NO₂',
+      value: data.NO2,
+      unit: 'ppb',
+      level: getNO2Level(data.NO2),
     },
     {
       label: 'SO₂',
@@ -116,11 +123,35 @@ export function IndoorAirQuality() {
           Real-time monitoring from Firebase sensors
         </p>
       </CardHeader>
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {metrics.map((metric) => (
-            <MetricCard key={metric.label} metric={metric} />
-          ))}
+      <CardContent className="pt-6 space-y-6">
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Weather Conditions</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {weatherMetrics.map((metric) => (
+              <Card key={metric.label} className="overflow-hidden">
+                <CardContent className="p-4">
+                  <div className="flex flex-col space-y-1">
+                    <span className="text-xs font-medium text-muted-foreground">{metric.label}</span>
+                    <div className="flex items-baseline space-x-1">
+                      <span className="text-2xl font-bold text-foreground">
+                        {metric.value?.toFixed(1) ?? 'N/A'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{metric.unit}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+        
+        <div>
+          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Air Quality</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {airQualityMetrics.map((metric) => (
+              <MetricCard key={metric.label} metric={metric} />
+            ))}
+          </div>
         </div>
       </CardContent>
     </Card>
