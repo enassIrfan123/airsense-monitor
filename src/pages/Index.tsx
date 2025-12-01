@@ -77,7 +77,7 @@ const Index = () => {
       },
       indoor: indoorData
         ? {
-            pm25: indoorData.PM25,
+            pm25: indoorData.PM2_5,
             pm10: indoorData.PM10,
             no2: indoorData.NO2,
             co: indoorData.CO,
