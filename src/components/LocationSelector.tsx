@@ -118,6 +118,7 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
     toast.success(`Location set to ${locationName}`);
   };
 
+  // Handle manual coordinate submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const parsedLat = parseFloat(lat);
