@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,6 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Loader2, Locate, Search } from 'lucide-react';
 import { Location } from '@/types/airQuality';
 import { toast } from 'sonner';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 const API_KEY = 'd13fb2febeee7ffb24c3cf514f5457d6';
 
@@ -22,23 +29,75 @@ const presetLocations: Location[] = [
   { lat: -33.8688, lon: 151.2093, name: 'Sydney' },
 ];
 
+interface CitySuggestion {
+  name: string;
+  country: string;
+  lat: number;
+  lon: number;
+  state?: string;
+}
+
 export function LocationSelector({ currentLocation, onLocationChange }: LocationSelectorProps) {
   const [lat, setLat] = useState(currentLocation.lat.toString());
   const [lon, setLon] = useState(currentLocation.lon.toString());
   const [name, setName] = useState(currentLocation.name);
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<CitySuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsedLat = parseFloat(lat);
-    const parsedLon = parseFloat(lon);
-    
-    if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
-      onLocationChange({ lat: parsedLat, lon: parsedLon, name });
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  };
+
+    const normalizedQuery = searchQuery.trim();
+    
+    if (normalizedQuery.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsSearching(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(normalizedQuery)}&limit=5&appid=${API_KEY}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setSuggestions(data);
+          setShowSuggestions(data.length > 0);
+        }
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const handlePresetClick = (location: Location) => {
     setLat(location.lat.toString());
@@ -47,45 +106,25 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
     onLocationChange(location);
   };
 
-  const handleSearchLocation = async () => {
-    if (!searchQuery.trim()) {
-      toast.error('Please enter a location to search');
-      return;
-    }
+  const handleSuggestionSelect = (suggestion: CitySuggestion) => {
+    const locationName = `${suggestion.name}${suggestion.state ? `, ${suggestion.state}` : ''}, ${suggestion.country}`;
+    setLat(suggestion.lat.toString());
+    setLon(suggestion.lon.toString());
+    setName(locationName);
+    setSearchQuery('');
+    setSuggestions([]);
+    setShowSuggestions(false);
+    onLocationChange({ lat: suggestion.lat, lon: suggestion.lon, name: locationName });
+    toast.success(`Location set to ${locationName}`);
+  };
 
-    setIsSearching(true);
-
-    try {
-      const response = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(searchQuery)}&limit=1&appid=${API_KEY}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to search location');
-      }
-
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        const result = data[0];
-        const foundLat = result.lat;
-        const foundLon = result.lon;
-        const foundName = result.name + (result.country ? `, ${result.country}` : '');
-
-        setLat(foundLat.toString());
-        setLon(foundLon.toString());
-        setName(foundName);
-        onLocationChange({ lat: foundLat, lon: foundLon, name: foundName });
-        toast.success(`Location found: ${foundName}`);
-        setSearchQuery('');
-      } else {
-        toast.error('Location not found. Try a different search.');
-      }
-    } catch (error) {
-      console.error('Location search error:', error);
-      toast.error('Failed to search location. Please try again.');
-    } finally {
-      setIsSearching(false);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsedLat = parseFloat(lat);
+    const parsedLon = parseFloat(lon);
+    
+    if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
+      onLocationChange({ lat: parsedLat, lon: parsedLon, name });
     }
   };
 
@@ -173,30 +212,51 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Search Location */}
-        <div className="space-y-2">
+        <div className="space-y-2 relative" ref={dropdownRef}>
           <Label htmlFor="search">Search Location</Label>
-          <div className="flex gap-2">
-            <Input
-              id="search"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearchLocation()}
-              placeholder="e.g., Islamabad, Pakistan"
-              className="flex-1"
-            />
-            <Button
-              onClick={handleSearchLocation}
-              disabled={isSearching}
-              className="gap-2"
-            >
-              {isSearching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-              Search
-            </Button>
+          <div className="relative">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="e.g., islamabad, pakistan or Tokyo, Japan"
+                  className="flex-1"
+                  autoComplete="off"
+                />
+                {isSearching && (
+                  <Loader2 className="h-4 w-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                )}
+              </div>
+            </div>
+            
+            {/* Suggestions Dropdown */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-50">
+                <Command className="rounded-lg border shadow-md bg-popover">
+                  <CommandList>
+                    <CommandGroup heading="Suggestions">
+                      {suggestions.map((suggestion, index) => (
+                        <CommandItem
+                          key={`${suggestion.lat}-${suggestion.lon}-${index}`}
+                          onSelect={() => handleSuggestionSelect(suggestion)}
+                          className="cursor-pointer"
+                        >
+                          <MapPin className="mr-2 h-4 w-4" />
+                          <span>
+                            {suggestion.name}
+                            {suggestion.state && `, ${suggestion.state}`}
+                            {`, ${suggestion.country}`}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </div>
+            )}
           </div>
         </div>
 

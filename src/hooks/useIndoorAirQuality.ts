@@ -1,22 +1,38 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { ref, onValue, off } from 'firebase/database';
+import { database } from '@/lib/firebase';
 import { IndoorAirQuality } from '@/types/airQuality';
 
-const FIREBASE_URL = 'https://airsense-data-default-rtdb.firebaseio.com/airQuality.json';
-
-async function fetchIndoorAirQuality(): Promise<IndoorAirQuality> {
-  const response = await fetch(FIREBASE_URL);
-  if (!response.ok) {
-    throw new Error('Failed to fetch indoor air quality data');
-  }
-  const data = await response.json();
-  return data;
-}
-
 export function useIndoorAirQuality() {
-  return useQuery({
-    queryKey: ['indoorAirQuality'],
-    queryFn: fetchIndoorAirQuality,
-    refetchInterval: 30000, // Refetch every 30 seconds
-    retry: 3,
-  });
+  const [data, setData] = useState<IndoorAirQuality | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const airQualityRef = ref(database, 'airQuality');
+
+    const unsubscribe = onValue(
+      airQualityRef,
+      (snapshot) => {
+        setIsLoading(false);
+        if (snapshot.exists()) {
+          setData(snapshot.val());
+          setError(null);
+        } else {
+          setError(new Error('No data available'));
+        }
+      },
+      (err) => {
+        setIsLoading(false);
+        setError(err);
+      }
+    );
+
+    return () => {
+      off(airQualityRef);
+      unsubscribe();
+    };
+  }, []);
+
+  return { data, isLoading, error };
 }
