@@ -1,4 +1,4 @@
-import { Wind, Download, Bell } from 'lucide-react';
+import { Download, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import {
@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import airsenseLogo from '@/assets/airsense-logo.png';
 
 interface DashboardNavProps {
   onRefresh: () => void;
@@ -26,9 +27,7 @@ export function DashboardNav({ onRefresh, onExport, onToggleAlerts, alertsEnable
         <div className="flex items-center justify-between gap-4">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <Wind className="h-8 w-8 text-primary" />
-            </div>
+            <img src={airsenseLogo} alt="AirSense Logo" className="h-12 w-auto" />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 AirSense Monitor
