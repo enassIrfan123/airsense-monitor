@@ -228,7 +228,7 @@ const Index = () => {
       <footer className="border-t mt-12 py-6 bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
           <p>
-            Data updates every 30 seconds • Indoor data from Firebase • Outdoor data from OpenWeatherMap
+            Real-time data updates • Indoor sensors via Firebase • Outdoor data from OpenWeatherMap
           </p>
         </div>
       </footer>
