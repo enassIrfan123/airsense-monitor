@@ -10,11 +10,13 @@ import {
   getO3Level,
 } from '@/utils/airQualityCalculations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Home, AlertCircle, Loader2 } from 'lucide-react';
+import { Home, Loader2, WifiOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function IndoorAirQuality() {
   const { data, isLoading, error } = useIndoorAirQuality();
+
+  const isDisconnected = error || !data;
 
   if (isLoading) {
     return (
@@ -32,83 +34,63 @@ export function IndoorAirQuality() {
     );
   }
 
-  if (error) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Home className="h-5 w-5" />
-            Indoor Air Quality
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Firebase Permission Denied (401)</strong>
-              <br />
-              The Firebase Realtime Database needs read permissions configured.
-              <br />
-              <br />
-              To fix this, update your Firebase Realtime Database rules to allow read access:
-              <br />
-              <code className="text-xs bg-muted px-2 py-1 rounded mt-2 block">
-                {`{\n  "rules": {\n    "airQuality": {\n      ".read": true\n    }\n  }\n}`}
-              </code>
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
+  // Default zero values when sensor is not connected
+  const sensorData = isDisconnected ? {
+    temperature: 0,
+    feels_like: 0,
+    humidity: 0,
+    pressure: 0,
+    PM2_5: 0,
+    PM10: 0,
+    CO: 0,
+    NO2: 0,
+    SO2: 0,
+    O3: 0,
+  } : data;
 
   const weatherMetrics = [
-    { label: 'Temperature', value: data.temperature, unit: '°C' },
-    { label: 'Feels Like', value: data.feels_like, unit: '°C' },
-    { label: 'Humidity', value: data.humidity, unit: '%' },
-    { label: 'Pressure', value: data.pressure, unit: 'hPa' },
+    { label: 'Temperature', value: sensorData.temperature, unit: '°C' },
+    { label: 'Feels Like', value: sensorData.feels_like, unit: '°C' },
+    { label: 'Humidity', value: sensorData.humidity, unit: '%' },
+    { label: 'Pressure', value: sensorData.pressure, unit: 'hPa' },
   ];
 
   const airQualityMetrics: AirQualityMetric[] = [
     {
       label: 'PM2.5',
-      value: data.PM2_5,
+      value: sensorData.PM2_5,
       unit: 'µg/m³',
-      level: getPM25Level(data.PM2_5),
+      level: getPM25Level(sensorData.PM2_5),
     },
     {
       label: 'PM10',
-      value: data.PM10,
+      value: sensorData.PM10,
       unit: 'µg/m³',
-      level: getPM10Level(data.PM10),
+      level: getPM10Level(sensorData.PM10),
     },
     {
       label: 'CO',
-      value: data.CO,
+      value: sensorData.CO,
       unit: 'ppm',
-      level: getCOLevel(data.CO),
+      level: getCOLevel(sensorData.CO),
     },
     {
       label: 'NO₂',
-      value: data.NO2,
+      value: sensorData.NO2,
       unit: 'ppb',
-      level: getNO2Level(data.NO2),
+      level: getNO2Level(sensorData.NO2),
     },
     {
       label: 'SO₂',
-      value: data.SO2,
+      value: sensorData.SO2,
       unit: 'ppb',
-      level: getSO2Level(data.SO2),
+      level: getSO2Level(sensorData.SO2),
     },
     {
       label: 'O₃',
-      value: data.O3,
+      value: sensorData.O3,
       unit: 'ppb',
-      level: getO3Level(data.O3),
+      level: getO3Level(sensorData.O3),
     },
   ];
 
@@ -124,6 +106,15 @@ export function IndoorAirQuality() {
         </p>
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
+        {isDisconnected && (
+          <Alert className="bg-muted/50 border-muted-foreground/20">
+            <WifiOff className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Sensor not connected. Connect the sensor to view indoor air quality.</span>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Weather Conditions</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -134,7 +125,7 @@ export function IndoorAirQuality() {
                     <span className="text-xs font-medium text-muted-foreground">{metric.label}</span>
                     <div className="flex items-baseline space-x-1">
                       <span className="text-2xl font-bold text-foreground">
-                        {metric.value?.toFixed(1) ?? 'N/A'}
+                        {metric.value?.toFixed(1) ?? '0'}
                       </span>
                       <span className="text-xs text-muted-foreground">{metric.unit}</span>
                     </div>
