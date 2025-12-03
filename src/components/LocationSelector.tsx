@@ -291,27 +291,6 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
           </Button>
         </div>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-card px-2 text-muted-foreground">Or select a location</span>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {presetLocations.map((location) => (
-            <Button
-              key={location.name}
-              variant={currentLocation.name === location.name ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => handlePresetClick(location)}
-            >
-              {location.name}
-            </Button>
-          ))}
-        </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
