@@ -9,8 +9,8 @@ import {
   getSO2Level,
   getO3Level,
   calculateAQI,
-  getLevelColor,
   getAQIDescription,
+  getAQIStyles,
 } from '@/utils/airQualityCalculations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Cloud, AlertCircle, Loader2, Thermometer, Droplets, Gauge, Activity } from 'lucide-react';
@@ -128,26 +128,31 @@ export function OutdoorAirQuality({ lat, lon, locationName }: OutdoorAirQualityP
       </CardHeader>
       <CardContent className="pt-6 space-y-6">
         {/* AQI Display */}
-        <div className={`p-4 rounded-lg bg-${getLevelColor(aqiResult.level)}/10 border border-${getLevelColor(aqiResult.level)}/30`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Activity className={`h-8 w-8 text-${getLevelColor(aqiResult.level)}`} />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Air Quality Index (AQI)</p>
-                <p className={`text-3xl font-bold text-${getLevelColor(aqiResult.level)}`}>
-                  {aqiResult.aqi}
-                </p>
+        {(() => {
+          const styles = getAQIStyles(aqiResult.level);
+          return (
+            <div className={`p-4 rounded-lg ${styles.bg} border ${styles.border}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Activity className={`h-8 w-8 ${styles.text}`} />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Air Quality Index (AQI)</p>
+                    <p className={`text-3xl font-bold ${styles.text}`}>
+                      {aqiResult.aqi}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-lg font-semibold capitalize ${styles.text}`}>
+                    {aqiResult.level.replace('-', ' ')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{getAQIDescription(aqiResult.aqi)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Dominant: {aqiResult.dominantPollutant}</p>
+                </div>
               </div>
             </div>
-            <div className="text-right">
-              <p className={`text-lg font-semibold capitalize text-${getLevelColor(aqiResult.level)}`}>
-                {aqiResult.level.replace('-', ' ')}
-              </p>
-              <p className="text-xs text-muted-foreground">{getAQIDescription(aqiResult.aqi)}</p>
-              <p className="text-xs text-muted-foreground mt-1">Dominant: {aqiResult.dominantPollutant}</p>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Weather Information */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b">

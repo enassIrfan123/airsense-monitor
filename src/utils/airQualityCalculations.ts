@@ -144,6 +144,42 @@ export function getAQIDescription(aqi: number): string {
   return 'Hazardous - emergency conditions';
 }
 
+// Returns styling classes for AQI levels
+export function getAQIStyles(level: AirQualityLevel): {
+  bg: string;
+  border: string;
+  text: string;
+} {
+  const styles = {
+    good: {
+      bg: 'bg-green-500/10',
+      border: 'border-green-500/30',
+      text: 'text-green-600',
+    },
+    moderate: {
+      bg: 'bg-yellow-500/10',
+      border: 'border-yellow-500/30',
+      text: 'text-yellow-600',
+    },
+    unhealthy: {
+      bg: 'bg-orange-500/10',
+      border: 'border-orange-500/30',
+      text: 'text-orange-600',
+    },
+    'very-unhealthy': {
+      bg: 'bg-red-500/10',
+      border: 'border-red-500/30',
+      text: 'text-red-600',
+    },
+    hazardous: {
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/30',
+      text: 'text-purple-600',
+    },
+  };
+  return styles[level];
+}
+
 // Air Quality Index (AQI) thresholds based on EPA standards
 export function getPM25Level(value: number): AirQualityLevel {
   if (value <= 12) return 'good';
