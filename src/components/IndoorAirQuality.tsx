@@ -8,9 +8,12 @@ import {
   getNO2Level,
   getSO2Level,
   getO3Level,
+  calculateAQI,
+  getLevelColor,
+  getAQIDescription,
 } from '@/utils/airQualityCalculations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Home, Loader2, WifiOff } from 'lucide-react';
+import { Home, Loader2, WifiOff, Activity } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export function IndoorAirQuality() {
@@ -54,6 +57,16 @@ export function IndoorAirQuality() {
     { label: 'Humidity', value: sensorData.humidity, unit: '%' },
     { label: 'Pressure', value: sensorData.pressure, unit: 'hPa' },
   ];
+
+  // Calculate AQI
+  const aqiResult = calculateAQI(
+    sensorData.PM2_5,
+    sensorData.PM10,
+    sensorData.CO,
+    sensorData.NO2,
+    sensorData.SO2,
+    sensorData.O3
+  );
 
   const airQualityMetrics: AirQualityMetric[] = [
     {
@@ -114,6 +127,28 @@ export function IndoorAirQuality() {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* AQI Display */}
+        <div className={`p-4 rounded-lg bg-${getLevelColor(aqiResult.level)}/10 border border-${getLevelColor(aqiResult.level)}/30`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Activity className={`h-8 w-8 text-${getLevelColor(aqiResult.level)}`} />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Air Quality Index (AQI)</p>
+                <p className={`text-3xl font-bold text-${getLevelColor(aqiResult.level)}`}>
+                  {aqiResult.aqi}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className={`text-lg font-semibold capitalize text-${getLevelColor(aqiResult.level)}`}>
+                {aqiResult.level.replace('-', ' ')}
+              </p>
+              <p className="text-xs text-muted-foreground">{getAQIDescription(aqiResult.aqi)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Dominant: {aqiResult.dominantPollutant}</p>
+            </div>
+          </div>
+        </div>
         
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">Weather Conditions</h3>
