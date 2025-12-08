@@ -18,4 +18,4 @@ WORKDIR /app
 COPY --from=build /app/publish .
 
 # This command must match the entry point of your .NET application
-ENTRYPOINT ["dotnet", "YourProjectName.dll"]
+ENTRYPOINT ["dotnet", "AirsenseMonitor.dll"]
