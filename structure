@@ -1,0 +1,64 @@
+Here's the full project structure:
+
+```
+AirSense/
+├── public/
+│   ├── AIRSENSE (1).jpg
+│   ├── favicon.ico
+│   ├── placeholder.svg
+│   └── robots.txt
+├── src/
+│   ├── assets/
+│   │   └── airsense-logo.png
+│   ├── components/
+│   │   ├── ui/                      # 50+ Shadcn UI components
+│   │   ├── AirQualityAlerts.tsx
+│   │   ├── AirQualityMap.tsx
+│   │   ├── DashboardNav.tsx
+│   │   ├── HealthRecommendations.tsx
+│   │   ├── HistoricalCharts.tsx
+│   │   ├── IndoorAirQuality.tsx
+│   │   ├── LocationComparison.tsx
+│   │   ├── LocationFavorites.tsx
+│   │   ├── LocationSelector.tsx
+│   │   ├── MetricCard.tsx
+│   │   ├── NavLink.tsx
+│   │   ├── OutdoorAirQuality.tsx
+│   │   ├── RainfallPrediction.tsx
+│   │   ├── ThemeProvider.tsx
+│   │   ├── ThemeToggle.tsx
+│   │   ├── UVIndex.tsx
+│   │   └── WeeklyTrends.tsx
+│   ├── hooks/
+│   │   ├── use-mobile.tsx
+│   │   ├── use-toast.ts
+│   │   ├── useAirQualityAlerts.ts
+│   │   ├── useIndoorAirQuality.ts
+│   │   └── useOutdoorData.ts
+│   ├── lib/
+│   │   ├── firebase.ts
+│   │   └── utils.ts
+│   ├── pages/
+│   │   ├── Index.tsx
+│   │   └── NotFound.tsx
+│   ├── types/
+│   │   └── airQuality.ts
+│   ├── utils/
+│   │   ├── airQualityCalculations.ts
+│   │   └── dataExport.ts
+│   ├── App.css
+│   ├── App.tsx
+│   ├── index.css
+│   ├── main.tsx
+│   └── vite-env.d.ts
+├── Dockerfile
+├── README.md
+├── index.html
+├── package.json
+├── tailwind.config.ts
+├── tsconfig.json
+└── vite.config.ts
+```
+
+Generate Complete README
+Add Contributing Guide
