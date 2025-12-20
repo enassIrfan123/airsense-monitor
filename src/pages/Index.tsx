@@ -11,7 +11,6 @@ import { LocationComparison } from '@/components/LocationComparison';
 import { HistoricalCharts } from '@/components/HistoricalCharts';
 import { DashboardNav } from '@/components/DashboardNav';
 import { WeeklyTrends } from '@/components/WeeklyTrends';
-import { LocationFavorites } from '@/components/LocationFavorites';
 import { Location } from '@/types/airQuality';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Cloud, Home } from 'lucide-react';
@@ -234,12 +233,6 @@ const Index = () => {
               <div id="comparison">
                 <LocationComparison />
               </div>
-
-              {/* Location Favorites - moved to end */}
-              <LocationFavorites
-                currentLocation={location}
-                onLocationSelect={setLocation}
-              />
             </TabsContent>
 
             {/* Indoor Tab Content */}
