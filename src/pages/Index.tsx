@@ -13,6 +13,8 @@ import { DashboardNav } from '@/components/DashboardNav';
 import { WeeklyTrends } from '@/components/WeeklyTrends';
 import { LocationFavorites } from '@/components/LocationFavorites';
 import { Location } from '@/types/airQuality';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Cloud, Home } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useOutdoorData } from '@/hooks/useOutdoorData';
@@ -123,107 +125,132 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {/* Location Favorites */}
-          <LocationFavorites
-            currentLocation={location}
-            onLocationSelect={setLocation}
-          />
+          {/* Outdoor/Indoor Tabs */}
+          <Tabs defaultValue="outdoor" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 h-14 p-1 bg-muted/50 rounded-lg">
+              <TabsTrigger 
+                value="outdoor" 
+                className="flex items-center justify-center gap-2 h-12 text-base font-semibold rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <Cloud className="h-5 w-5" />
+                Outdoor
+              </TabsTrigger>
+              <TabsTrigger 
+                value="indoor" 
+                className="flex items-center justify-center gap-2 h-12 text-base font-semibold rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <Home className="h-5 w-5" />
+                Indoor
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Location Selector */}
-          <LocationSelector currentLocation={location} onLocationChange={setLocation} />
-
-          {/* Indoor Air Quality */}
-          <div id="indoor">
-            <ErrorBoundary>
-              <IndoorAirQuality />
-            </ErrorBoundary>
-          </div>
-
-          {/* Outdoor Air Quality */}
-          <div id="outdoor">
-            <OutdoorAirQuality
-              lat={location.lat}
-              lon={location.lon}
-              locationName={location.name}
-            />
-          </div>
-
-          {/* UV Index and Rainfall in a grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <UVIndex uvi={outdoorData?.weather.uvi} />
-            <RainfallPrediction
-              rain_1h={outdoorData?.weather.rain_1h}
-              rain_3h={outdoorData?.weather.rain_3h}
-              clouds={outdoorData?.weather.clouds}
-            />
-          </div>
-
-          {/* Air Quality Heat Map */}
-          {outdoorData && (
-            <AirQualityMap
-              lat={location.lat}
-              lon={location.lon}
-              locationName={location.name}
-              pm25={outdoorData.airPollution.pm2_5}
-            />
-          )}
-
-          {/* Air Quality Alerts */}
-          {outdoorData && (
-            <div id="alerts">
-              <AirQualityAlerts
-                pm25={outdoorData.airPollution.pm2_5}
-                pm10={outdoorData.airPollution.pm10}
-                co={outdoorData.airPollution.co / 1000}
-                no2={outdoorData.airPollution.no2}
-                so2={outdoorData.airPollution.so2}
-                o3={outdoorData.airPollution.o3}
-                pm25Level={getPM25Level(outdoorData.airPollution.pm2_5)}
-                pm10Level={getPM10Level(outdoorData.airPollution.pm10)}
-                coLevel={getCOLevel(outdoorData.airPollution.co / 1000)}
-                no2Level={getNO2Level(outdoorData.airPollution.no2)}
-                so2Level={getSO2Level(outdoorData.airPollution.so2)}
-                o3Level={getO3Level(outdoorData.airPollution.o3)}
+            {/* Outdoor Tab Content */}
+            <TabsContent value="outdoor" className="mt-6 space-y-6">
+              {/* Location Favorites */}
+              <LocationFavorites
+                currentLocation={location}
+                onLocationSelect={setLocation}
               />
-            </div>
-          )}
 
-          {/* Health Recommendations */}
-          {outdoorData && (
-            <HealthRecommendations
-              pm25Level={getPM25Level(outdoorData.airPollution.pm2_5)}
-              pm10Level={getPM10Level(outdoorData.airPollution.pm10)}
-              o3Level={getO3Level(outdoorData.airPollution.o3)}
-              no2Level={getNO2Level(outdoorData.airPollution.no2)}
-            />
-          )}
+              {/* Location Selector */}
+              <LocationSelector currentLocation={location} onLocationChange={setLocation} />
 
-          {/* Historical Data Charts */}
-          {outdoorData && (
-            <HistoricalCharts
-              currentPM25={outdoorData.airPollution.pm2_5}
-              currentPM10={outdoorData.airPollution.pm10}
-              currentCO={outdoorData.airPollution.co / 1000}
-              currentNO2={outdoorData.airPollution.no2}
-              currentO3={outdoorData.airPollution.o3}
-              currentSO2={outdoorData.airPollution.so2}
-            />
-          )}
+              {/* Outdoor Air Quality */}
+              <div id="outdoor">
+                <OutdoorAirQuality
+                  lat={location.lat}
+                  lon={location.lon}
+                  locationName={location.name}
+                />
+              </div>
 
-          {/* Weekly Trends */}
-          {outdoorData && (
-            <WeeklyTrends
-              currentPM25={outdoorData.airPollution.pm2_5}
-              currentPM10={outdoorData.airPollution.pm10}
-              currentO3={outdoorData.airPollution.o3}
-              currentNO2={outdoorData.airPollution.no2}
-            />
-          )}
+              {/* UV Index and Rainfall in a grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <UVIndex uvi={outdoorData?.weather.uvi} />
+                <RainfallPrediction
+                  rain_1h={outdoorData?.weather.rain_1h}
+                  rain_3h={outdoorData?.weather.rain_3h}
+                  clouds={outdoorData?.weather.clouds}
+                />
+              </div>
 
-          {/* Location Comparison */}
-          <div id="comparison">
-            <LocationComparison />
-          </div>
+              {/* Air Quality Heat Map */}
+              {outdoorData && (
+                <AirQualityMap
+                  lat={location.lat}
+                  lon={location.lon}
+                  locationName={location.name}
+                  pm25={outdoorData.airPollution.pm2_5}
+                />
+              )}
+
+              {/* Air Quality Alerts */}
+              {outdoorData && (
+                <div id="alerts">
+                  <AirQualityAlerts
+                    pm25={outdoorData.airPollution.pm2_5}
+                    pm10={outdoorData.airPollution.pm10}
+                    co={outdoorData.airPollution.co / 1000}
+                    no2={outdoorData.airPollution.no2}
+                    so2={outdoorData.airPollution.so2}
+                    o3={outdoorData.airPollution.o3}
+                    pm25Level={getPM25Level(outdoorData.airPollution.pm2_5)}
+                    pm10Level={getPM10Level(outdoorData.airPollution.pm10)}
+                    coLevel={getCOLevel(outdoorData.airPollution.co / 1000)}
+                    no2Level={getNO2Level(outdoorData.airPollution.no2)}
+                    so2Level={getSO2Level(outdoorData.airPollution.so2)}
+                    o3Level={getO3Level(outdoorData.airPollution.o3)}
+                  />
+                </div>
+              )}
+
+              {/* Health Recommendations */}
+              {outdoorData && (
+                <HealthRecommendations
+                  pm25Level={getPM25Level(outdoorData.airPollution.pm2_5)}
+                  pm10Level={getPM10Level(outdoorData.airPollution.pm10)}
+                  o3Level={getO3Level(outdoorData.airPollution.o3)}
+                  no2Level={getNO2Level(outdoorData.airPollution.no2)}
+                />
+              )}
+
+              {/* Historical Data Charts */}
+              {outdoorData && (
+                <HistoricalCharts
+                  currentPM25={outdoorData.airPollution.pm2_5}
+                  currentPM10={outdoorData.airPollution.pm10}
+                  currentCO={outdoorData.airPollution.co / 1000}
+                  currentNO2={outdoorData.airPollution.no2}
+                  currentO3={outdoorData.airPollution.o3}
+                  currentSO2={outdoorData.airPollution.so2}
+                />
+              )}
+
+              {/* Weekly Trends */}
+              {outdoorData && (
+                <WeeklyTrends
+                  currentPM25={outdoorData.airPollution.pm2_5}
+                  currentPM10={outdoorData.airPollution.pm10}
+                  currentO3={outdoorData.airPollution.o3}
+                  currentNO2={outdoorData.airPollution.no2}
+                />
+              )}
+
+              {/* Location Comparison */}
+              <div id="comparison">
+                <LocationComparison />
+              </div>
+            </TabsContent>
+
+            {/* Indoor Tab Content */}
+            <TabsContent value="indoor" className="mt-6 space-y-6">
+              <div id="indoor">
+                <ErrorBoundary>
+                  <IndoorAirQuality />
+                </ErrorBoundary>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
