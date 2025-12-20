@@ -17,10 +17,6 @@ interface DashboardNavProps {
 }
 
 export function DashboardNav({ onRefresh, onExport, onToggleAlerts, alertsEnabled }: DashboardNavProps) {
-  const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   return (
     <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-4">
@@ -38,22 +34,6 @@ export function DashboardNav({ onRefresh, onExport, onToggleAlerts, alertsEnable
 
           {/* Navigation & Actions */}
           <div className="flex items-center gap-2">
-            {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-1 mr-2">
-              <Button variant="ghost" size="sm" onClick={() => scrollToSection('indoor')}>
-                Indoor
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => scrollToSection('outdoor')}>
-                Outdoor
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => scrollToSection('alerts')}>
-                Alerts
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => scrollToSection('comparison')}>
-                Compare
-              </Button>
-            </nav>
-
             {/* Alert Toggle */}
             <Button
               variant={alertsEnabled ? "default" : "outline"}
