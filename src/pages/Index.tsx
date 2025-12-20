@@ -146,12 +146,6 @@ const Index = () => {
 
             {/* Outdoor Tab Content */}
             <TabsContent value="outdoor" className="mt-6 space-y-6">
-              {/* Location Favorites */}
-              <LocationFavorites
-                currentLocation={location}
-                onLocationSelect={setLocation}
-              />
-
               {/* Location Selector */}
               <LocationSelector currentLocation={location} onLocationChange={setLocation} />
 
@@ -240,6 +234,12 @@ const Index = () => {
               <div id="comparison">
                 <LocationComparison />
               </div>
+
+              {/* Location Favorites - moved to end */}
+              <LocationFavorites
+                currentLocation={location}
+                onLocationSelect={setLocation}
+              />
             </TabsContent>
 
             {/* Indoor Tab Content */}
