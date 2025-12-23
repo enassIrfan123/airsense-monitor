@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Loader2, Locate, ChevronDown, Navigation } from 'lucide-react';
+import { MapPin, Loader2, Locate, ChevronDown, Navigation, Map } from 'lucide-react';
 import { Location } from '@/types/airQuality';
 import { toast } from 'sonner';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   Command,
   CommandEmpty,
@@ -17,6 +19,14 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+
+// Fix Leaflet default marker icon issue
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const API_KEY = 'd13fb2febeee7ffb24c3cf514f5457d6';
 
@@ -54,6 +64,10 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
   const [manualName, setManualName] = useState('');
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -104,6 +118,84 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       }
     };
   }, [searchQuery]);
+
+  // Initialize and handle map picker
+  useEffect(() => {
+    if (!showMapPicker || !mapRef.current) return;
+
+    // Clean up existing map
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+
+    // Create new map centered on current location
+    const map = L.map(mapRef.current).setView([currentLocation.lat, currentLocation.lon], 6);
+    mapInstanceRef.current = map;
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 18,
+    }).addTo(map);
+
+    // Add initial marker
+    const marker = L.marker([currentLocation.lat, currentLocation.lon]).addTo(map);
+    marker.bindPopup(`<strong>${currentLocation.name}</strong>`).openPopup();
+    markerRef.current = marker;
+
+    // Handle map clicks
+    const handleMapClick = async (e: L.LeafletMouseEvent) => {
+      const { lat, lng: lon } = e.latlng;
+      
+      // Update marker position
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lon]);
+      } else {
+        markerRef.current = L.marker([lat, lon]).addTo(map);
+      }
+
+      // Reverse geocode to get location name
+      try {
+        const response = await fetch(
+          `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${API_KEY}`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          const locationName = data?.[0]?.name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+          markerRef.current?.bindPopup(`<strong>${locationName}</strong>`).openPopup();
+          onLocationChange({ lat, lon, name: locationName });
+          toast.success(`Location set to ${locationName}`);
+        } else {
+          const name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+          markerRef.current?.bindPopup(`<strong>${name}</strong>`).openPopup();
+          onLocationChange({ lat, lon, name });
+          toast.success(`Location set to ${name}`);
+        }
+      } catch (error) {
+        const name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        markerRef.current?.bindPopup(`<strong>${name}</strong>`).openPopup();
+        onLocationChange({ lat, lon, name });
+        toast.success(`Location set to ${name}`);
+      }
+    };
+
+    map.on('click', handleMapClick);
+
+    // Fix map size issues when container becomes visible
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    return () => {
+      map.off('click', handleMapClick);
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [showMapPicker, currentLocation.lat, currentLocation.lon, onLocationChange]);
 
   const handlePresetClick = (location: Location) => {
     onLocationChange(location);
@@ -299,6 +391,29 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
               ))}
             </div>
           </div>
+
+          {/* Map Picker */}
+          <Collapsible open={showMapPicker} onOpenChange={setShowMapPicker}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between text-muted-foreground hover:text-foreground">
+                <span className="flex items-center gap-2 text-xs uppercase tracking-wide">
+                  <Map className="h-4 w-4" />
+                  Select on Map
+                </span>
+                <ChevronDown className={`h-4 w-4 transition-transform ${showMapPicker ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">Click anywhere on the map to select a location</p>
+                <div 
+                  ref={mapRef} 
+                  className="h-[250px] rounded-lg overflow-hidden border"
+                  style={{ zIndex: 0 }}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Advanced: Manual Coordinates */}
           <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
