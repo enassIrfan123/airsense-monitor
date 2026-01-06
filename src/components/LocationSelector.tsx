@@ -65,8 +65,10 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
+  const [hoverCoords, setHoverCoords] = useState<{ lat: number; lon: number } | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const presetMarkersRef = useRef<L.Marker[]>([]);
   const markerRef = useRef<L.Marker | null>(null);
 
   useEffect(() => {
@@ -128,21 +130,104 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       mapInstanceRef.current.remove();
       mapInstanceRef.current = null;
     }
+    presetMarkersRef.current = [];
 
     // Create new map centered on current location
-    const map = L.map(mapRef.current).setView([currentLocation.lat, currentLocation.lon], 6);
+    const map = L.map(mapRef.current, {
+      zoomControl: false, // We'll add custom position
+    }).setView([currentLocation.lat, currentLocation.lon], 3);
     mapInstanceRef.current = map;
+
+    // Add zoom control to top-right
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Add scale control
+    L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
 
     // Add OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      attribution: '© OpenStreetMap',
       maxZoom: 18,
     }).addTo(map);
 
-    // Add initial marker
-    const marker = L.marker([currentLocation.lat, currentLocation.lon]).addTo(map);
-    marker.bindPopup(`<strong>${currentLocation.name}</strong>`).openPopup();
+    // Create custom icon for preset cities
+    const presetIcon = L.divIcon({
+      className: 'custom-preset-marker',
+      html: `<div style="
+        width: 24px;
+        height: 24px;
+        background: hsl(var(--primary));
+        border: 2px solid white;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      "><div style="width: 8px; height: 8px; background: white; border-radius: 50%;"></div></div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+    });
+
+    // Add preset city markers
+    presetLocations.forEach((loc) => {
+      const presetMarker = L.marker([loc.lat, loc.lon], { icon: presetIcon }).addTo(map);
+      presetMarker.bindTooltip(loc.name, { 
+        permanent: false, 
+        direction: 'top',
+        offset: [0, -12],
+        className: 'preset-tooltip'
+      });
+      presetMarker.on('click', () => {
+        onLocationChange(loc);
+        toast.success(`Location set to ${loc.name}`);
+        if (markerRef.current) {
+          markerRef.current.setLatLng([loc.lat, loc.lon]);
+          markerRef.current.bindPopup(`<strong>${loc.name}</strong>`).openPopup();
+        }
+      });
+      presetMarkersRef.current.push(presetMarker);
+    });
+
+    // Add current location marker (different style)
+    const selectedIcon = L.divIcon({
+      className: 'custom-selected-marker',
+      html: `<div style="
+        width: 32px;
+        height: 32px;
+        background: hsl(var(--destructive));
+        border: 3px solid white;
+        border-radius: 50%;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: pulse 2s infinite;
+      "><div style="width: 10px; height: 10px; background: white; border-radius: 50%;"></div></div>
+      <style>
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.1); }
+        }
+      </style>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    const marker = L.marker([currentLocation.lat, currentLocation.lon], { icon: selectedIcon }).addTo(map);
+    marker.bindPopup(`<strong>${currentLocation.name}</strong><br><small>Selected Location</small>`).openPopup();
     markerRef.current = marker;
+
+    // Handle mouse move for coordinate display
+    const handleMouseMove = (e: L.LeafletMouseEvent) => {
+      setHoverCoords({ lat: e.latlng.lat, lon: e.latlng.lng });
+    };
+
+    const handleMouseOut = () => {
+      setHoverCoords(null);
+    };
+
+    map.on('mousemove', handleMouseMove);
+    map.on('mouseout', handleMouseOut);
 
     // Handle map clicks
     const handleMapClick = async (e: L.LeafletMouseEvent) => {
@@ -152,7 +237,7 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       if (markerRef.current) {
         markerRef.current.setLatLng([lat, lon]);
       } else {
-        markerRef.current = L.marker([lat, lon]).addTo(map);
+        markerRef.current = L.marker([lat, lon], { icon: selectedIcon }).addTo(map);
       }
 
       // Reverse geocode to get location name
@@ -164,18 +249,18 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
         if (response.ok) {
           const data = await response.json();
           const locationName = data?.[0]?.name || `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-          markerRef.current?.bindPopup(`<strong>${locationName}</strong>`).openPopup();
+          markerRef.current?.bindPopup(`<strong>${locationName}</strong><br><small>Selected Location</small>`).openPopup();
           onLocationChange({ lat, lon, name: locationName });
           toast.success(`Location set to ${locationName}`);
         } else {
           const name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-          markerRef.current?.bindPopup(`<strong>${name}</strong>`).openPopup();
+          markerRef.current?.bindPopup(`<strong>${name}</strong><br><small>Selected Location</small>`).openPopup();
           onLocationChange({ lat, lon, name });
           toast.success(`Location set to ${name}`);
         }
       } catch (error) {
         const name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        markerRef.current?.bindPopup(`<strong>${name}</strong>`).openPopup();
+        markerRef.current?.bindPopup(`<strong>${name}</strong><br><small>Selected Location</small>`).openPopup();
         onLocationChange({ lat, lon, name });
         toast.success(`Location set to ${name}`);
       }
@@ -190,6 +275,9 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
 
     return () => {
       map.off('click', handleMapClick);
+      map.off('mousemove', handleMouseMove);
+      map.off('mouseout', handleMouseOut);
+      presetMarkersRef.current = [];
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -405,12 +493,31 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-3">
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Click anywhere on the map to select a location</p>
-                <div 
-                  ref={mapRef} 
-                  className="h-[250px] rounded-lg overflow-hidden border"
-                  style={{ zIndex: 0 }}
-                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">Click anywhere on the map to select a location</p>
+                  {hoverCoords && (
+                    <div className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                      {hoverCoords.lat.toFixed(4)}, {hoverCoords.lon.toFixed(4)}
+                    </div>
+                  )}
+                </div>
+                <div className="relative">
+                  <div 
+                    ref={mapRef} 
+                    className="h-[300px] rounded-lg overflow-hidden border"
+                    style={{ zIndex: 0 }}
+                  />
+                  <div className="absolute bottom-2 right-2 z-10 bg-background/90 backdrop-blur-sm rounded px-2 py-1 text-xs flex items-center gap-2 border shadow-sm">
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-primary border border-white" />
+                      <span>Cities</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full bg-destructive border border-white" />
+                      <span>Selected</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CollapsibleContent>
           </Collapsible>
