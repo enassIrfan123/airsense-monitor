@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Loader2, Locate, ChevronDown, Navigation, Map } from 'lucide-react';
+import { MapPin, Loader2, Locate, ChevronDown, Navigation, Map, Maximize2, Minimize2, Layers } from 'lucide-react';
 import { Location } from '@/types/airQuality';
 import { toast } from 'sonner';
 import L from 'leaflet';
@@ -66,10 +66,37 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [hoverCoords, setHoverCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeTileLayer, setActiveTileLayer] = useState<'street' | 'satellite' | 'terrain' | 'dark'>('street');
   const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const presetMarkersRef = useRef<L.Marker[]>([]);
   const markerRef = useRef<L.Marker | null>(null);
+
+  const tileLayers = {
+    street: {
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '© OpenStreetMap',
+      name: 'Street'
+    },
+    satellite: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution: '© Esri',
+      name: 'Satellite'
+    },
+    terrain: {
+      url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+      attribution: '© OpenTopoMap',
+      name: 'Terrain'
+    },
+    dark: {
+      url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      attribution: '© CARTO',
+      name: 'Dark'
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -144,11 +171,12 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
     // Add scale control
     L.control.scale({ position: 'bottomleft', imperial: false }).addTo(map);
 
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
+    // Add tile layer
+    const tileLayer = L.tileLayer(tileLayers[activeTileLayer].url, {
+      attribution: tileLayers[activeTileLayer].attribution,
       maxZoom: 18,
     }).addTo(map);
+    tileLayerRef.current = tileLayer;
 
     // Create custom icon for preset cities
     const presetIcon = L.divIcon({
@@ -283,7 +311,19 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
         mapInstanceRef.current = null;
       }
     };
-  }, [showMapPicker, currentLocation.lat, currentLocation.lon, onLocationChange]);
+  }, [showMapPicker, currentLocation.lat, currentLocation.lon, onLocationChange, activeTileLayer]);
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+    // Invalidate map size after transition
+    setTimeout(() => {
+      mapInstanceRef.current?.invalidateSize();
+    }, 300);
+  };
+
+  const handleTileLayerChange = (layer: 'street' | 'satellite' | 'terrain' | 'dark') => {
+    setActiveTileLayer(layer);
+  };
 
   const handlePresetClick = (location: Location) => {
     onLocationChange(location);
@@ -492,19 +532,61 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="pt-3">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+              <div 
+                ref={mapContainerRef}
+                className={`space-y-2 transition-all duration-300 ${
+                  isFullscreen 
+                    ? 'fixed inset-0 z-50 bg-background p-4' 
+                    : ''
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
                   <p className="text-xs text-muted-foreground">Click anywhere on the map to select a location</p>
-                  {hoverCoords && (
-                    <div className="text-xs font-mono bg-muted px-2 py-1 rounded">
-                      {hoverCoords.lat.toFixed(4)}, {hoverCoords.lon.toFixed(4)}
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {hoverCoords && (
+                      <div className="text-xs font-mono bg-muted px-2 py-1 rounded">
+                        {hoverCoords.lat.toFixed(4)}, {hoverCoords.lon.toFixed(4)}
+                      </div>
+                    )}
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={toggleFullscreen}
+                    >
+                      {isFullscreen ? (
+                        <Minimize2 className="h-3.5 w-3.5" />
+                      ) : (
+                        <Maximize2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
+
+                {/* Tile Layer Selector */}
+                <div className="flex items-center gap-1">
+                  <Layers className="h-3.5 w-3.5 text-muted-foreground" />
+                  <div className="flex gap-1">
+                    {(Object.keys(tileLayers) as Array<keyof typeof tileLayers>).map((layer) => (
+                      <Button
+                        key={layer}
+                        variant={activeTileLayer === layer ? "default" : "outline"}
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        onClick={() => handleTileLayerChange(layer)}
+                      >
+                        {tileLayers[layer].name}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="relative">
                   <div 
                     ref={mapRef} 
-                    className="h-[300px] rounded-lg overflow-hidden border"
+                    className={`rounded-lg overflow-hidden border transition-all duration-300 ${
+                      isFullscreen ? 'h-[calc(100vh-140px)]' : 'h-[300px]'
+                    }`}
                     style={{ zIndex: 0 }}
                   />
                   <div className="absolute bottom-2 right-2 z-10 bg-background/90 backdrop-blur-sm rounded px-2 py-1 text-xs flex items-center gap-2 border shadow-sm">
