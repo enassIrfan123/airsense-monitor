@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Loader2, Locate, ChevronDown, Navigation, Map, Maximize2, Minimize2, Layers } from 'lucide-react';
+import { MapPin, Loader2, Locate, ChevronDown, Navigation, Map, Maximize2, Minimize2, Layers, Cloud, Droplets, Thermometer, Circle } from 'lucide-react';
 import { Location } from '@/types/airQuality';
 import { toast } from 'sonner';
 import L from 'leaflet';
@@ -68,10 +68,18 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
   const [hoverCoords, setHoverCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [activeTileLayer, setActiveTileLayer] = useState<'street' | 'satellite' | 'terrain' | 'dark'>('street');
+  const [weatherOverlays, setWeatherOverlays] = useState<{
+    clouds: boolean;
+    precipitation: boolean;
+    temperature: boolean;
+  }>({ clouds: false, precipitation: false, temperature: false });
+  const [searchRadius, setSearchRadius] = useState(50); // km
   const mapRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
+  const weatherLayersRef = useRef<{ [key: string]: L.TileLayer }>({});
+  const radiusCircleRef = useRef<L.Circle | null>(null);
   const presetMarkersRef = useRef<L.Marker[]>([]);
   const markerRef = useRef<L.Marker | null>(null);
 
@@ -158,11 +166,12 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       mapInstanceRef.current = null;
     }
     presetMarkersRef.current = [];
+    weatherLayersRef.current = {};
 
     // Create new map centered on current location
     const map = L.map(mapRef.current, {
       zoomControl: false, // We'll add custom position
-    }).setView([currentLocation.lat, currentLocation.lon], 3);
+    }).setView([currentLocation.lat, currentLocation.lon], 5);
     mapInstanceRef.current = map;
 
     // Add zoom control to top-right
@@ -212,6 +221,10 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
           markerRef.current.setLatLng([loc.lat, loc.lon]);
           markerRef.current.bindPopup(`<strong>${loc.name}</strong>`).openPopup();
         }
+        // Update radius circle
+        if (radiusCircleRef.current) {
+          radiusCircleRef.current.setLatLng([loc.lat, loc.lon]);
+        }
       });
       presetMarkersRef.current.push(presetMarker);
     });
@@ -245,6 +258,17 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
     marker.bindPopup(`<strong>${currentLocation.name}</strong><br><small>Selected Location</small>`).openPopup();
     markerRef.current = marker;
 
+    // Add search radius circle
+    const radiusCircle = L.circle([currentLocation.lat, currentLocation.lon], {
+      radius: searchRadius * 1000, // Convert km to meters
+      color: 'hsl(var(--primary))',
+      fillColor: 'hsl(var(--primary))',
+      fillOpacity: 0.1,
+      weight: 2,
+      dashArray: '5, 10',
+    }).addTo(map);
+    radiusCircleRef.current = radiusCircle;
+
     // Handle mouse move for coordinate display
     const handleMouseMove = (e: L.LeafletMouseEvent) => {
       setHoverCoords({ lat: e.latlng.lat, lon: e.latlng.lng });
@@ -266,6 +290,11 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
         markerRef.current.setLatLng([lat, lon]);
       } else {
         markerRef.current = L.marker([lat, lon], { icon: selectedIcon }).addTo(map);
+      }
+
+      // Update radius circle position
+      if (radiusCircleRef.current) {
+        radiusCircleRef.current.setLatLng([lat, lon]);
       }
 
       // Reverse geocode to get location name
@@ -306,12 +335,61 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       map.off('mousemove', handleMouseMove);
       map.off('mouseout', handleMouseOut);
       presetMarkersRef.current = [];
+      weatherLayersRef.current = {};
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
     };
   }, [showMapPicker, currentLocation.lat, currentLocation.lon, onLocationChange, activeTileLayer]);
+
+  // Update radius circle when searchRadius changes
+  useEffect(() => {
+    if (radiusCircleRef.current) {
+      radiusCircleRef.current.setRadius(searchRadius * 1000);
+    }
+  }, [searchRadius]);
+
+  // Handle weather overlays
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+
+    const weatherTileLayers = {
+      clouds: `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
+      precipitation: `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
+      temperature: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
+    };
+
+    // Manage cloud layer
+    if (weatherOverlays.clouds && !weatherLayersRef.current.clouds) {
+      const cloudLayer = L.tileLayer(weatherTileLayers.clouds, { opacity: 0.6 });
+      cloudLayer.addTo(mapInstanceRef.current);
+      weatherLayersRef.current.clouds = cloudLayer;
+    } else if (!weatherOverlays.clouds && weatherLayersRef.current.clouds) {
+      mapInstanceRef.current.removeLayer(weatherLayersRef.current.clouds);
+      delete weatherLayersRef.current.clouds;
+    }
+
+    // Manage precipitation layer
+    if (weatherOverlays.precipitation && !weatherLayersRef.current.precipitation) {
+      const precipLayer = L.tileLayer(weatherTileLayers.precipitation, { opacity: 0.6 });
+      precipLayer.addTo(mapInstanceRef.current);
+      weatherLayersRef.current.precipitation = precipLayer;
+    } else if (!weatherOverlays.precipitation && weatherLayersRef.current.precipitation) {
+      mapInstanceRef.current.removeLayer(weatherLayersRef.current.precipitation);
+      delete weatherLayersRef.current.precipitation;
+    }
+
+    // Manage temperature layer
+    if (weatherOverlays.temperature && !weatherLayersRef.current.temperature) {
+      const tempLayer = L.tileLayer(weatherTileLayers.temperature, { opacity: 0.6 });
+      tempLayer.addTo(mapInstanceRef.current);
+      weatherLayersRef.current.temperature = tempLayer;
+    } else if (!weatherOverlays.temperature && weatherLayersRef.current.temperature) {
+      mapInstanceRef.current.removeLayer(weatherLayersRef.current.temperature);
+      delete weatherLayersRef.current.temperature;
+    }
+  }, [weatherOverlays]);
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
@@ -564,7 +642,7 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
                 </div>
 
                 {/* Tile Layer Selector */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 flex-wrap">
                   <Layers className="h-3.5 w-3.5 text-muted-foreground" />
                   <div className="flex gap-1">
                     {(Object.keys(tileLayers) as Array<keyof typeof tileLayers>).map((layer) => (
@@ -581,15 +659,65 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
                   </div>
                 </div>
 
+                {/* Weather Overlays */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  <span className="text-xs text-muted-foreground mr-1">Weather:</span>
+                  <Button
+                    variant={weatherOverlays.clouds ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 text-xs px-2 gap-1"
+                    onClick={() => setWeatherOverlays(prev => ({ ...prev, clouds: !prev.clouds }))}
+                  >
+                    <Cloud className="h-3 w-3" />
+                    Clouds
+                  </Button>
+                  <Button
+                    variant={weatherOverlays.precipitation ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 text-xs px-2 gap-1"
+                    onClick={() => setWeatherOverlays(prev => ({ ...prev, precipitation: !prev.precipitation }))}
+                  >
+                    <Droplets className="h-3 w-3" />
+                    Rain
+                  </Button>
+                  <Button
+                    variant={weatherOverlays.temperature ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 text-xs px-2 gap-1"
+                    onClick={() => setWeatherOverlays(prev => ({ ...prev, temperature: !prev.temperature }))}
+                  >
+                    <Thermometer className="h-3 w-3" />
+                    Temp
+                  </Button>
+                </div>
+
+                {/* Search Radius Control */}
+                <div className="flex items-center gap-2">
+                  <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Radius:</span>
+                  <input
+                    type="range"
+                    min="10"
+                    max="200"
+                    step="10"
+                    value={searchRadius}
+                    onChange={(e) => setSearchRadius(Number(e.target.value))}
+                    className="w-24 h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                  />
+                  <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded min-w-[3rem] text-center">
+                    {searchRadius} km
+                  </span>
+                </div>
+
                 <div className="relative">
                   <div 
                     ref={mapRef} 
                     className={`rounded-lg overflow-hidden border transition-all duration-300 ${
-                      isFullscreen ? 'h-[calc(100vh-140px)]' : 'h-[300px]'
+                      isFullscreen ? 'h-[calc(100vh-200px)]' : 'h-[300px]'
                     }`}
                     style={{ zIndex: 0 }}
                   />
-                  <div className="absolute bottom-2 right-2 z-10 bg-background/90 backdrop-blur-sm rounded px-2 py-1 text-xs flex items-center gap-2 border shadow-sm">
+                  <div className="absolute bottom-2 right-2 z-10 bg-background/90 backdrop-blur-sm rounded px-2 py-1 text-xs flex items-center gap-3 border shadow-sm">
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full bg-primary border border-white" />
                       <span>Cities</span>
@@ -597,6 +725,10 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full bg-destructive border border-white" />
                       <span>Selected</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-3 h-3 rounded-full border-2 border-primary border-dashed bg-primary/10" />
+                      <span>Search Area</span>
                     </div>
                   </div>
                 </div>
