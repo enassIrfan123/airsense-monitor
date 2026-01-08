@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, Loader2, Locate, ChevronDown, Navigation, Map, Maximize2, Minimize2, Layers, Cloud, Droplets, Thermometer, Circle } from 'lucide-react';
+import { MapPin, Loader2, Locate, ChevronDown, Navigation, Map, Maximize2, Minimize2, Layers, Cloud, Droplets, Thermometer, Circle, Wind, Activity } from 'lucide-react';
 import { Location } from '@/types/airQuality';
 import { toast } from 'sonner';
 import L from 'leaflet';
@@ -72,7 +72,9 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
     clouds: boolean;
     precipitation: boolean;
     temperature: boolean;
-  }>({ clouds: false, precipitation: false, temperature: false });
+    wind: boolean;
+    airQuality: boolean;
+  }>({ clouds: false, precipitation: false, temperature: false, wind: false, airQuality: false });
   const [searchRadius, setSearchRadius] = useState(50); // km
   const mapRef = useRef<HTMLDivElement>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -358,6 +360,7 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       clouds: `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
       precipitation: `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
       temperature: `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
+      wind: `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${API_KEY}`,
     };
 
     // Manage cloud layer
@@ -389,7 +392,86 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       mapInstanceRef.current.removeLayer(weatherLayersRef.current.temperature);
       delete weatherLayersRef.current.temperature;
     }
-  }, [weatherOverlays]);
+
+    // Manage wind layer
+    if (weatherOverlays.wind && !weatherLayersRef.current.wind) {
+      const windLayer = L.tileLayer(weatherTileLayers.wind, { opacity: 0.7 });
+      windLayer.addTo(mapInstanceRef.current);
+      weatherLayersRef.current.wind = windLayer;
+    } else if (!weatherOverlays.wind && weatherLayersRef.current.wind) {
+      mapInstanceRef.current.removeLayer(weatherLayersRef.current.wind);
+      delete weatherLayersRef.current.wind;
+    }
+
+    // Manage air quality layer (using PM2.5)
+    if (weatherOverlays.airQuality && !weatherLayersRef.current.airQuality) {
+      // OpenWeatherMap doesn't have a direct AQI tile layer, so we use a custom approach
+      // We'll use the OpenWeatherMap air pollution API to create markers
+      const aqLayer = L.layerGroup();
+      
+      // Create a grid of air quality indicators around the current location
+      const fetchAQData = async () => {
+        const gridPoints = [
+          { lat: currentLocation.lat, lon: currentLocation.lon },
+          { lat: currentLocation.lat + 0.5, lon: currentLocation.lon },
+          { lat: currentLocation.lat - 0.5, lon: currentLocation.lon },
+          { lat: currentLocation.lat, lon: currentLocation.lon + 0.5 },
+          { lat: currentLocation.lat, lon: currentLocation.lon - 0.5 },
+          { lat: currentLocation.lat + 0.5, lon: currentLocation.lon + 0.5 },
+          { lat: currentLocation.lat - 0.5, lon: currentLocation.lon - 0.5 },
+          { lat: currentLocation.lat + 0.5, lon: currentLocation.lon - 0.5 },
+          { lat: currentLocation.lat - 0.5, lon: currentLocation.lon + 0.5 },
+        ];
+
+        for (const point of gridPoints) {
+          try {
+            const response = await fetch(
+              `https://api.openweathermap.org/data/2.5/air_pollution?lat=${point.lat}&lon=${point.lon}&appid=${API_KEY}`
+            );
+            if (response.ok) {
+              const data = await response.json();
+              const aqi = data.list?.[0]?.main?.aqi || 1;
+              const pm25 = data.list?.[0]?.components?.pm2_5 || 0;
+              
+              // AQI color scale: 1=Good(green), 2=Fair(yellow), 3=Moderate(orange), 4=Poor(red), 5=VeryPoor(purple)
+              const colors = {
+                1: '#22c55e',
+                2: '#eab308',
+                3: '#f97316',
+                4: '#ef4444',
+                5: '#9333ea'
+              };
+              const color = colors[aqi as keyof typeof colors] || '#6b7280';
+              
+              const aqiMarker = L.circleMarker([point.lat, point.lon], {
+                radius: 20,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.4,
+                weight: 2,
+              });
+              
+              aqiMarker.bindTooltip(`AQI: ${aqi}<br>PM2.5: ${pm25.toFixed(1)} µg/m³`, {
+                permanent: false,
+                direction: 'top'
+              });
+              
+              aqiMarker.addTo(aqLayer);
+            }
+          } catch (error) {
+            console.error('Error fetching AQ data:', error);
+          }
+        }
+      };
+
+      fetchAQData();
+      aqLayer.addTo(mapInstanceRef.current);
+      weatherLayersRef.current.airQuality = aqLayer as any;
+    } else if (!weatherOverlays.airQuality && weatherLayersRef.current.airQuality) {
+      mapInstanceRef.current.removeLayer(weatherLayersRef.current.airQuality);
+      delete weatherLayersRef.current.airQuality;
+    }
+  }, [weatherOverlays, currentLocation.lat, currentLocation.lon]);
 
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
@@ -659,9 +741,9 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
                   </div>
                 </div>
 
-                {/* Weather Overlays */}
+                {/* Weather & Data Overlays */}
                 <div className="flex items-center gap-1 flex-wrap">
-                  <span className="text-xs text-muted-foreground mr-1">Weather:</span>
+                  <span className="text-xs text-muted-foreground mr-1">Overlays:</span>
                   <Button
                     variant={weatherOverlays.clouds ? "default" : "outline"}
                     size="sm"
@@ -688,6 +770,24 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
                   >
                     <Thermometer className="h-3 w-3" />
                     Temp
+                  </Button>
+                  <Button
+                    variant={weatherOverlays.wind ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 text-xs px-2 gap-1"
+                    onClick={() => setWeatherOverlays(prev => ({ ...prev, wind: !prev.wind }))}
+                  >
+                    <Wind className="h-3 w-3" />
+                    Wind
+                  </Button>
+                  <Button
+                    variant={weatherOverlays.airQuality ? "default" : "outline"}
+                    size="sm"
+                    className="h-6 text-xs px-2 gap-1"
+                    onClick={() => setWeatherOverlays(prev => ({ ...prev, airQuality: !prev.airQuality }))}
+                  >
+                    <Activity className="h-3 w-3" />
+                    AQI
                   </Button>
                 </div>
 
@@ -717,7 +817,7 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
                     }`}
                     style={{ zIndex: 0 }}
                   />
-                  <div className="absolute bottom-2 right-2 z-10 bg-background/90 backdrop-blur-sm rounded px-2 py-1 text-xs flex items-center gap-3 border shadow-sm">
+                  <div className="absolute bottom-2 right-2 z-10 bg-background/90 backdrop-blur-sm rounded px-2 py-1.5 text-xs flex flex-wrap items-center gap-2 border shadow-sm max-w-[280px]">
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full bg-primary border border-white" />
                       <span>Cities</span>
@@ -728,8 +828,18 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
                     </div>
                     <div className="flex items-center gap-1">
                       <div className="w-3 h-3 rounded-full border-2 border-primary border-dashed bg-primary/10" />
-                      <span>Search Area</span>
+                      <span>Radius</span>
                     </div>
+                    {weatherOverlays.airQuality && (
+                      <div className="flex items-center gap-1">
+                        <div className="flex gap-0.5">
+                          <div className="w-2 h-2 rounded-full bg-green-500" />
+                          <div className="w-2 h-2 rounded-full bg-yellow-500" />
+                          <div className="w-2 h-2 rounded-full bg-red-500" />
+                        </div>
+                        <span>AQI</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
